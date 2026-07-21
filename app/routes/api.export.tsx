@@ -79,7 +79,12 @@ export async function action({ request }: ActionFunctionArgs) {
       row.getCell(2).value = order.total;
       row.getCell(3).value = order.customer;
       row.getCell(4).value = fullAddress;
-      row.getCell(5).value = order.postalCode;
+      const postalCode = String(order.postalCode || "")
+  .replace(/^'+/, "")
+  .trim();
+
+row.getCell(5).value = postalCode;
+row.getCell(5).numFmt = "@";
       row.getCell(6).value = order.city;
       row.getCell(7).value = phone;
       row.getCell(8).value = order.country;
