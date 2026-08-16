@@ -57,7 +57,10 @@ function readValue(
   for (const name of possibleNames) {
     const value = row[name];
 
-    if (typeof value === "string" && value.trim()) {
+    if (
+      typeof value === "string" &&
+      value.trim()
+    ) {
       return value.trim();
     }
   }
@@ -66,10 +69,35 @@ function readValue(
 }
 
 function parseMoney(value: string) {
-  const normalized = value
+  if (!value) {
+    return 0;
+  }
+
+  let normalized = String(value)
+    .trim()
     .replace(/\s/g, "")
-    .replace("€", "")
-    .replace(",", ".");
+    .replace(/€/g, "")
+    .replace(/[^\d,.-]/g, "");
+
+  /*
+   * Suporta:
+   * 23.00
+   * 23,00
+   * 1.234,56
+   * 1,234.56
+   */
+  const lastComma = normalized.lastIndexOf(",");
+  const lastDot = normalized.lastIndexOf(".");
+
+  if (lastComma > lastDot) {
+    normalized = normalized
+      .replace(/\./g, "")
+      .replace(",", ".");
+  } else if (lastDot > lastComma && lastComma !== -1) {
+    normalized = normalized.replace(/,/g, "");
+  } else {
+    normalized = normalized.replace(",", ".");
+  }
 
   const number = Number(normalized);
 
@@ -95,9 +123,15 @@ export default function ExportPage() {
 
     return orders.filter(
       (order) =>
-        order.number.toLowerCase().includes(value) ||
-        order.customer.toLowerCase().includes(value) ||
-        order.countryName.toLowerCase().includes(value),
+        order.number
+          .toLowerCase()
+          .includes(value) ||
+        order.customer
+          .toLowerCase()
+          .includes(value) ||
+        order.countryName
+          .toLowerCase()
+          .includes(value),
     );
   }, [orders, search]);
 
@@ -117,7 +151,9 @@ export default function ExportPage() {
   function toggleOrder(id: string) {
     setSelected((current) =>
       current.includes(id)
-        ? current.filter((orderId) => orderId !== id)
+        ? current.filter(
+            (orderId) => orderId !== id,
+          )
         : [...current, id],
     );
   }
@@ -129,7 +165,9 @@ export default function ExportPage() {
 
     const allSelected =
       visibleIds.length > 0 &&
-      visibleIds.every((id) => selected.includes(id));
+      visibleIds.every((id) =>
+        selected.includes(id),
+      );
 
     if (allSelected) {
       setSelected((current) =>
@@ -140,7 +178,10 @@ export default function ExportPage() {
     } else {
       setSelected((current) =>
         Array.from(
-          new Set([...current, ...visibleIds]),
+          new Set([
+            ...current,
+            ...visibleIds,
+          ]),
         ),
       );
     }
@@ -163,120 +204,305 @@ export default function ExportPage() {
       skipEmptyLines: true,
 
       complete: (result) => {
-        const uniqueOrders = new Map<string, Order>();
+        try {
+          /*
+           * Uma encomenda da Shopify pode ocupar
+           * várias linhas no CSV.
+           *
+           * Primeiro juntamos TODAS as linhas
+           * pertencentes à mesma encomenda.
+           */
+          const groupedOrders = new Map<
+            string,
+            Record<string, string>[]
+          >();
 
-        for (const row of result.data) {
-          const number = readValue(row, [
-            "Name",
-            "Order",
-            "Order Name",
-          ]);
+          for (const row of result.data) {
+            const number = readValue(row, [
+              "Name",
+              "Order",
+              "Order Name",
+            ]);
 
-          if (!number || uniqueOrders.has(number)) {
-            continue;
+            if (!number) {
+              continue;
+            }
+
+            const existing =
+              groupedOrders.get(number) || [];
+
+            existing.push(row);
+
+            groupedOrders.set(
+              number,
+              existing,
+            );
           }
 
-          const countryCode = readValue(row, [
-            "Shipping Country Code",
-            "Billing Country Code",
-            "Shipping Country",
-            "Billing Country",
-          ]).toUpperCase();
+          const importedOrders: Order[] = [];
 
-          const country: "PT" | "ES" =
-            countryCode === "ES" ||
-            countryCode === "SPAIN" ||
-            countryCode === "ESPANHA"
-              ? "ES"
-              : "PT";
+          for (
+            const [number, rows]
+            of groupedOrders
+          ) {
+            /*
+             * Procura o primeiro valor não vazio
+             * em todas as linhas da encomenda.
+             */
+            function firstValue(
+              names: string[],
+            ) {
+              for (const row of rows) {
+                const value = readValue(
+                  row,
+                  names,
+                );
 
-          const total = parseMoney(
-            readValue(row, [
+                if (value) {
+                  return value;
+                }
+              }
+
+              return "";
+            }
+
+            /*
+             * Procura do fim para o início.
+             * É útil para campos que podem ter
+             * valores atualizados nas linhas
+             * posteriores.
+             */
+            function lastValue(
+              names: string[],
+            ) {
+              for (
+                let i = rows.length - 1;
+                i >= 0;
+                i--
+              ) {
+                const value = readValue(
+                  rows[i],
+                  names,
+                );
+
+                if (value) {
+                  return value;
+                }
+              }
+
+              return "";
+            }
+
+            /*
+             * =========================
+             * MORADA DE ENVIO
+             * =========================
+             *
+             * Para a transportadora,
+             * Shipping tem prioridade.
+             *
+             * Billing só é utilizado quando
+             * não existe morada Shipping.
+             */
+
+            const shippingAddress1 =
+              firstValue([
+                "Shipping Address1",
+                "Shipping Address 1",
+              ]);
+
+            const hasShippingAddress =
+              Boolean(shippingAddress1);
+
+            const address1 =
+              hasShippingAddress
+                ? shippingAddress1
+                : firstValue([
+                    "Billing Address1",
+                    "Billing Address 1",
+                  ]);
+
+            const address2 =
+              hasShippingAddress
+                ? firstValue([
+                    "Shipping Address2",
+                    "Shipping Address 2",
+                  ])
+                : firstValue([
+                    "Billing Address2",
+                    "Billing Address 2",
+                  ]);
+
+            const postalCode =
+              hasShippingAddress
+                ? firstValue([
+                    "Shipping Zip",
+                    "Shipping Postal Code",
+                  ])
+                : firstValue([
+                    "Billing Zip",
+                    "Billing Postal Code",
+                  ]);
+
+            const city =
+              hasShippingAddress
+                ? firstValue([
+                    "Shipping City",
+                  ])
+                : firstValue([
+                    "Billing City",
+                  ]);
+
+            const customer =
+              hasShippingAddress
+                ? firstValue([
+                    "Shipping Name",
+                  ]) || "Sem nome"
+                : firstValue([
+                    "Billing Name",
+                    "Customer",
+                  ]) || "Sem nome";
+
+            const phone =
+              hasShippingAddress
+                ? firstValue([
+                    "Shipping Phone",
+                    "Phone",
+                  ])
+                : firstValue([
+                    "Billing Phone",
+                    "Phone",
+                  ]);
+
+            const countryRaw =
+              hasShippingAddress
+                ? firstValue([
+                    "Shipping Country Code",
+                    "Shipping Country",
+                  ])
+                : firstValue([
+                    "Billing Country Code",
+                    "Billing Country",
+                  ]);
+
+            const countryCode =
+              countryRaw
+                .trim()
+                .toUpperCase();
+
+            const country: "PT" | "ES" =
+              countryCode === "ES" ||
+              countryCode === "SPAIN" ||
+              countryCode === "ESPANHA" ||
+              countryCode === "ESPAÑA"
+                ? "ES"
+                : "PT";
+
+            /*
+             * =========================
+             * TOTAL DA ENCOMENDA
+             * =========================
+             *
+             * Não somamos Lineitem Price.
+             *
+             * Procuramos primeiro campos
+             * de total atual/final.
+             */
+
+            const totalFields = [
+              "Current Total Price",
+              "Current Total",
               "Total",
               "Total Price",
-              "Current Total Price",
-            ]),
+            ];
+
+            let totalValue = "";
+
+            for (const field of totalFields) {
+              const value = lastValue([
+                field,
+              ]);
+
+              if (value) {
+                totalValue = value;
+                break;
+              }
+            }
+
+            const total =
+              parseMoney(totalValue);
+
+            const date =
+              firstValue([
+                "Created at",
+                "Paid at",
+              ]);
+
+            const email =
+              firstValue([
+                "Email",
+                "Contact Email",
+              ]);
+
+            importedOrders.push({
+              id: number,
+              number,
+              customer,
+
+              country,
+
+              countryName:
+                country === "ES"
+                  ? "Espanha"
+                  : "Portugal",
+
+              date,
+              total,
+
+              address1,
+              address2,
+              postalCode,
+              city,
+              phone,
+              email,
+            });
+          }
+
+          if (
+            importedOrders.length === 0
+          ) {
+            setError(
+              "Não foram encontradas encomendas válidas no CSV.",
+            );
+
+            return;
+          }
+
+          setOrders(importedOrders);
+          setSelected([]);
+          setSearch("");
+
+          setSuccess(
+            `${importedOrders.length} encomendas carregadas com sucesso.`,
+          );
+        } catch (
+          processingError
+        ) {
+          console.error(
+            "Erro ao processar CSV:",
+            processingError,
           );
 
-          uniqueOrders.set(number, {
-            id: number,
-            number,
-            customer:
-              readValue(row, [
-                "Shipping Name",
-                "Billing Name",
-                "Customer",
-              ]) || "Sem nome",
-
-            country,
-            countryName:
-              country === "ES"
-                ? "Espanha"
-                : "Portugal",
-
-            date: readValue(row, [
-              "Created at",
-              "Paid at",
-            ]),
-
-            total,
-
-            address1: readValue(row, [
-              "Shipping Address1",
-              "Billing Address1",
-            ]),
-
-            address2: readValue(row, [
-              "Shipping Address2",
-              "Billing Address2",
-            ]),
-
-            postalCode: readValue(row, [
-              "Shipping Zip",
-              "Billing Zip",
-            ]),
-
-            city: readValue(row, [
-              "Shipping City",
-              "Billing City",
-            ]),
-
-            phone: readValue(row, [
-              "Shipping Phone",
-              "Phone",
-              "Billing Phone",
-            ]),
-
-            email: readValue(row, [
-              "Email",
-              "Contact Email",
-            ]),
-          });
-        }
-
-        const importedOrders = Array.from(
-          uniqueOrders.values(),
-        );
-
-        if (importedOrders.length === 0) {
           setError(
-            "Não foram encontradas encomendas válidas no CSV.",
+            "Não foi possível processar o CSV da Shopify.",
           );
-
-          return;
         }
-
-        setOrders(importedOrders);
-        setSelected([]);
-        setSearch("");
-
-        setSuccess(
-          `${importedOrders.length} encomendas carregadas com sucesso.`,
-        );
       },
 
       error: () => {
-        setError("Não foi possível ler o ficheiro CSV.");
+        setError(
+          "Não foi possível ler o ficheiro CSV.",
+        );
       },
     });
 
@@ -284,7 +510,9 @@ export default function ExportPage() {
   }
 
   async function exportExcel() {
-    if (selectedOrders.length === 0) {
+    if (
+      selectedOrders.length === 0
+    ) {
       return;
     }
 
@@ -293,15 +521,21 @@ export default function ExportPage() {
     setError("");
 
     try {
-      const response = await fetch("/api/export", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "/api/export",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            orders: selectedOrders,
+          }),
         },
-        body: JSON.stringify({
-          orders: selectedOrders,
-        }),
-      });
+      );
 
       if (!response.ok) {
         const result = await response
@@ -314,21 +548,29 @@ export default function ExportPage() {
         );
       }
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const blob =
+        await response.blob();
 
-      const link = document.createElement("a");
+      const url =
+        URL.createObjectURL(blob);
+
+      const link =
+        document.createElement("a");
 
       link.href = url;
-      link.download = "SELLFORGE_EXPORT.xlsx";
+      link.download =
+        "SELLFORGE_EXPORT.xlsx";
 
       document.body.appendChild(link);
+
       link.click();
       link.remove();
 
       URL.revokeObjectURL(url);
 
-      setSuccess("Excel exportado com sucesso.");
+      setSuccess(
+        "Excel exportado com sucesso.",
+      );
     } catch (exportError) {
       setError(
         exportError instanceof Error
@@ -344,29 +586,46 @@ export default function ExportPage() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-logo">S</div>
+          <div className="brand-logo">
+            S
+          </div>
 
           <div>
             <strong>SellForge</strong>
-            <span>Business Platform</span>
+            <span>
+              Business Platform
+            </span>
           </div>
         </div>
 
         <nav className="nav">
-          <Link to="/">Dashboard</Link>
+          <Link to="/">
+            Dashboard
+          </Link>
 
-          <Link className="active" to="/export">
+          <Link
+            className="active"
+            to="/export"
+          >
             SellForge Export
           </Link>
 
-          <button type="button" disabled>
+          <button
+            type="button"
+            disabled
+          >
             SellForge Ads
-            <span className="soon">Brevemente</span>
+
+            <span className="soon">
+              Brevemente
+            </span>
           </button>
         </nav>
 
         <div className="sidebar-footer">
-          <span>Origem das encomendas</span>
+          <span>
+            Origem das encomendas
+          </span>
 
           <strong>
             {orders.length > 0
@@ -385,11 +644,14 @@ export default function ExportPage() {
               SELLFORGE EXPORT
             </p>
 
-            <h1>Exportação de encomendas</h1>
+            <h1>
+              Exportação de encomendas
+            </h1>
 
             <p>
-              Carregue o CSV da Shopify, selecione as
-              encomendas e crie o Excel da transportadora.
+              Carregue o CSV da Shopify,
+              selecione as encomendas e
+              crie o Excel da transportadora.
             </p>
           </div>
 
@@ -413,7 +675,9 @@ export default function ExportPage() {
               <input
                 type="file"
                 accept=".csv,text/csv"
-                onChange={handleCsvUpload}
+                onChange={
+                  handleCsvUpload
+                }
                 hidden
               />
             </label>
@@ -441,7 +705,9 @@ export default function ExportPage() {
             <input
               type="file"
               accept=".csv,text/csv"
-              onChange={handleCsvUpload}
+              onChange={
+                handleCsvUpload
+              }
               hidden
             />
           </label>
@@ -452,7 +718,8 @@ export default function ExportPage() {
             style={{
               marginTop: "18px",
               padding: "14px 16px",
-              border: "1px solid #a8d9b8",
+              border:
+                "1px solid #a8d9b8",
               borderRadius: "12px",
               background: "#eaf8ef",
               color: "#17643a",
@@ -468,7 +735,8 @@ export default function ExportPage() {
             style={{
               marginTop: "18px",
               padding: "14px 16px",
-              border: "1px solid #efb5b0",
+              border:
+                "1px solid #efb5b0",
               borderRadius: "12px",
               background: "#fff1f0",
               color: "#8a1f17",
@@ -481,17 +749,30 @@ export default function ExportPage() {
 
         <section className="stats-grid">
           <article className="stat-card">
-            <span>Encomendas</span>
-            <strong>{orders.length}</strong>
+            <span>
+              Encomendas
+            </span>
+
+            <strong>
+              {orders.length}
+            </strong>
           </article>
 
           <article className="stat-card">
-            <span>Selecionadas</span>
-            <strong>{selected.length}</strong>
+            <span>
+              Selecionadas
+            </span>
+
+            <strong>
+              {selected.length}
+            </strong>
           </article>
 
           <article className="stat-card">
-            <span>Valor selecionado</span>
+            <span>
+              Valor selecionado
+            </span>
+
             <strong>
               {selectedTotal.toFixed(2)} €
             </strong>
@@ -506,11 +787,15 @@ export default function ExportPage() {
               textAlign: "center",
             }}
           >
-            <h2>Ainda não existem encomendas</h2>
+            <h2>
+              Ainda não existem
+              encomendas
+            </h2>
 
             <p>
-              Carregue o ficheiro CSV exportado pela
-              Shopify para começar.
+              Carregue o ficheiro CSV
+              exportado pela Shopify
+              para começar.
             </p>
 
             <label
@@ -524,7 +809,9 @@ export default function ExportPage() {
               <input
                 type="file"
                 accept=".csv,text/csv"
-                onChange={handleCsvUpload}
+                onChange={
+                  handleCsvUpload
+                }
                 hidden
               />
             </label>
@@ -535,7 +822,10 @@ export default function ExportPage() {
               <input
                 value={search}
                 onChange={(event) =>
-                  setSearch(event.currentTarget.value)
+                  setSearch(
+                    event.currentTarget
+                      .value,
+                  )
                 }
                 placeholder="Pesquisar encomenda, cliente ou país..."
               />
@@ -552,7 +842,8 @@ export default function ExportPage() {
                 className="export-button"
                 type="button"
                 disabled={
-                  selected.length === 0 || exporting
+                  selected.length ===
+                    0 || exporting
                 }
                 onClick={exportExcel}
               >
@@ -564,45 +855,80 @@ export default function ExportPage() {
 
             <div className="table-header">
               <span />
-              <span>Encomenda</span>
-              <span>Cliente</span>
-              <span>País</span>
-              <span>Data</span>
-              <span>Total</span>
+              <span>
+                Encomenda
+              </span>
+              <span>
+                Cliente
+              </span>
+              <span>
+                País
+              </span>
+              <span>
+                Data
+              </span>
+              <span>
+                Total
+              </span>
             </div>
 
-            {filteredOrders.map((order) => {
-              const isSelected = selected.includes(
-                order.id,
-              );
+            {filteredOrders.map(
+              (order) => {
+                const isSelected =
+                  selected.includes(
+                    order.id,
+                  );
 
-              return (
-                <label
-                  className={`order-row ${
-                    isSelected ? "selected" : ""
-                  }`}
-                  key={order.id}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    disabled={exporting}
-                    onChange={() =>
-                      toggleOrder(order.id)
-                    }
-                  />
+                return (
+                  <label
+                    className={`order-row ${
+                      isSelected
+                        ? "selected"
+                        : ""
+                    }`}
+                    key={order.id}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={
+                        isSelected
+                      }
+                      disabled={
+                        exporting
+                      }
+                      onChange={() =>
+                        toggleOrder(
+                          order.id,
+                        )
+                      }
+                    />
 
-                  <strong>{order.number}</strong>
-                  <span>{order.customer}</span>
-                  <span>{order.countryName}</span>
-                  <span>{order.date}</span>
+                    <strong>
+                      {order.number}
+                    </strong>
 
-                  <strong>
-                    {order.total.toFixed(2)} €
-                  </strong>
-                </label>
-              );
-            })}
+                    <span>
+                      {order.customer}
+                    </span>
+
+                    <span>
+                      {order.countryName}
+                    </span>
+
+                    <span>
+                      {order.date}
+                    </span>
+
+                    <strong>
+                      {order.total.toFixed(
+                        2,
+                      )}{" "}
+                      €
+                    </strong>
+                  </label>
+                );
+              },
+            )}
           </section>
         )}
       </main>
