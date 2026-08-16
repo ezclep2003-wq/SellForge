@@ -357,34 +357,89 @@ export default function ExportPage() {
              * TOTAL DA ENCOMENDA
              * =========================
              *
-             * Não somamos Lineitem Price.
+             * O CSV da Shopify pode manter o campo
+             * "Total" antigo depois de uma edição.
              *
-             * Procuramos primeiro campos
-             * de total atual/final.
+             * Por isso, quando existem linhas de
+             * produtos, reconstruímos o valor atual
+             * através das linhas ativas:
+             *
+             * (preço × quantidade) - desconto da linha
+             * + portes
+             *
+             * Linhas sem quantidade/preço válidos não
+             * entram no cálculo. Se não existirem
+             * line items utilizáveis, fazemos fallback
+             * para o total exportado pela Shopify.
              */
 
-            const totalFields = [
-              "Current Total Price",
-              "Current Total",
-              "Total",
-              "Total Price",
-            ];
+            let lineItemsTotal = 0;
+            let usableLineItems = 0;
 
-            let totalValue = "";
-
-            for (const field of totalFields) {
-              const value = lastValue([
-                field,
+            for (const row of rows) {
+              const quantityValue = readValue(row, [
+                "Lineitem quantity",
+                "Lineitem Quantity",
               ]);
 
-              if (value) {
-                totalValue = value;
-                break;
+              const priceValue = readValue(row, [
+                "Lineitem price",
+                "Lineitem Price",
+              ]);
+
+              if (!quantityValue || !priceValue) {
+                continue;
               }
+
+              const quantity = Number(quantityValue);
+              const price = parseMoney(priceValue);
+
+              if (
+                !Number.isFinite(quantity) ||
+                quantity <= 0 ||
+                price < 0
+              ) {
+                continue;
+              }
+
+              const lineDiscount = parseMoney(
+                readValue(row, [
+                  "Lineitem discount",
+                  "Lineitem Discount",
+                ]),
+              );
+
+              lineItemsTotal +=
+                price * quantity - lineDiscount;
+
+              usableLineItems += 1;
             }
 
+            const shipping = parseMoney(
+              firstValue([
+                "Shipping",
+                "Shipping Price",
+              ]),
+            );
+
+            const exportedTotal = parseMoney(
+              lastValue([
+                "Current Total Price",
+                "Current Total",
+                "Total",
+                "Total Price",
+              ]),
+            );
+
             const total =
-              parseMoney(totalValue);
+              usableLineItems > 0
+                ? Math.max(
+                    0,
+                    Math.round(
+                      (lineItemsTotal + shipping) * 100,
+                    ) / 100,
+                  )
+                : exportedTotal;
 
             const date =
               firstValue([
