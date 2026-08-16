@@ -113,6 +113,8 @@ export default function ExportPage() {
   const [exporting, setExporting] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [editingTotalId, setEditingTotalId] = useState<string | null>(null);
+  const [editingTotalValue, setEditingTotalValue] = useState("");
 
   const filteredOrders = useMemo(() => {
     const value = search.toLowerCase().trim();
@@ -185,6 +187,41 @@ export default function ExportPage() {
         ),
       );
     }
+  }
+
+  function startEditingTotal(order: Order) {
+    setEditingTotalId(order.id);
+    setEditingTotalValue(order.total.toFixed(2).replace(".", ","));
+  }
+
+  function cancelEditingTotal() {
+    setEditingTotalId(null);
+    setEditingTotalValue("");
+  }
+
+  function saveEditingTotal(orderId: string) {
+    const value = parseMoney(editingTotalValue);
+
+    if (!Number.isFinite(value) || value < 0) {
+      setError("Introduza um valor válido.");
+      return;
+    }
+
+    setOrders((current) =>
+      current.map((order) =>
+        order.id === orderId
+          ? {
+              ...order,
+              total: Math.round(value * 100) / 100,
+            }
+          : order,
+      ),
+    );
+
+    setEditingTotalId(null);
+    setEditingTotalValue("");
+    setError("");
+    setSuccess("Valor da encomenda atualizado.");
   }
 
   function handleCsvUpload(
@@ -928,12 +965,110 @@ export default function ExportPage() {
                       {order.date}
                     </span>
 
-                    <strong>
-                      {order.total.toFixed(
-                        2,
-                      )}{" "}
-                      €
-                    </strong>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-end",
+                        gap: "8px",
+                      }}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                      }}
+                    >
+                      {editingTotalId === order.id ? (
+                        <>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={editingTotalValue}
+                            onChange={(event) =>
+                              setEditingTotalValue(
+                                event.currentTarget.value,
+                              )
+                            }
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                saveEditingTotal(order.id);
+                              }
+
+                              if (event.key === "Escape") {
+                                event.preventDefault();
+                                cancelEditingTotal();
+                              }
+                            }}
+                            autoFocus
+                            style={{
+                              width: "92px",
+                              padding: "7px 9px",
+                              border: "1px solid #b7b7b7",
+                              borderRadius: "8px",
+                              fontWeight: 700,
+                              textAlign: "right",
+                            }}
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              saveEditingTotal(order.id)
+                            }
+                            style={{
+                              border: 0,
+                              background: "#111827",
+                              color: "#fff",
+                              borderRadius: "8px",
+                              padding: "7px 9px",
+                              cursor: "pointer",
+                              fontWeight: 700,
+                            }}
+                            title="Guardar valor"
+                          >
+                            ✓
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={cancelEditingTotal}
+                            style={{
+                              border: "1px solid #d1d5db",
+                              background: "#fff",
+                              borderRadius: "8px",
+                              padding: "7px 9px",
+                              cursor: "pointer",
+                            }}
+                            title="Cancelar"
+                          >
+                            ×
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <strong>
+                            {order.total.toFixed(2)} €
+                          </strong>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              startEditingTotal(order)
+                            }
+                            style={{
+                              border: "1px solid #d1d5db",
+                              background: "#fff",
+                              borderRadius: "8px",
+                              padding: "5px 8px",
+                              cursor: "pointer",
+                            }}
+                            title="Editar total"
+                          >
+                            ✎
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </label>
                 );
               },
