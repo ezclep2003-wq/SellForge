@@ -156,7 +156,7 @@ export async function action({
 
       if (existing) {
         return {
-          error: "JÃ¡ existe um utilizador com esse email.",
+          error: "Já existe um utilizador com esse email.",
         };
       }
 
@@ -186,7 +186,7 @@ export async function action({
 
     if (!userId) {
       return {
-        error: "Cliente invÃ¡lido.",
+        error: "Cliente inválido.",
       };
     }
 
@@ -198,14 +198,14 @@ export async function action({
 
     if (!user) {
       return {
-        error: "Cliente nÃ£o encontrado.",
+        error: "Cliente não encontrado.",
       };
     }
 
     if (user.role === "ADMIN" && intent !== "renew") {
       return {
         error:
-          "NÃ£o podes suspender ou eliminar a conta principal de administrador.",
+          "Não podes suspender ou eliminar a conta principal de administrador.",
       };
     }
 
@@ -292,24 +292,24 @@ export async function action({
     }
 
     return {
-      error: "OperaÃ§Ã£o invÃ¡lida.",
+      error: "Operação invÃƒÂ¡lida.",
     };
   } catch (error) {
     console.error("Erro no painel Admin:", error);
 
     return {
-      error: "NÃ£o foi possÃ­vel concluir a operaÃ§Ã£o.",
+      error: "Não foi possível concluir a operaÃƒÂ§ÃƒÂ£o.",
     };
   }
 }
 
 function formatAccess(value: string | Date | null) {
-  if (!value) return "â™¾ï¸ Infinito";
+  if (!value) return "♾️ Infinito";
 
   const date = new Date(value);
   const expired = date.getTime() < Date.now();
 
-  return `${expired ? "ðŸ”´ Expirado: " : ""}${new Intl.DateTimeFormat(
+  return `${expired ? "🔴 Expirado: " : ""}${new Intl.DateTimeFormat(
     "pt-PT",
   ).format(date)}`;
 }
@@ -328,10 +328,10 @@ export default function AdminPage() {
       <header className="admin-header">
         <div>
           <p className="eyebrow">SELLFORGE ADMIN</p>
-          <h1>GestÃ£o de clientes</h1>
+          <h1>Gestão de clientes</h1>
 
           <p>
-            SessÃ£o iniciada como{" "}
+            Sessão iniciada como{" "}
             <strong>{admin.name || admin.email}</strong>
           </p>
         </div>
@@ -347,13 +347,13 @@ export default function AdminPage() {
 
       {actionData?.success && (
         <div className="admin-message success">
-          âœ… {actionData.success}
+          ✅ {actionData.success}
         </div>
       )}
 
       {actionData?.error && (
         <div className="admin-message error">
-          âŒ {actionData.error}
+          ❌ {actionData.error}
         </div>
       )}
 
@@ -397,7 +397,7 @@ export default function AdminPage() {
           <div>
             <h2>Adicionar cliente</h2>
             <p>
-              Cria o login e escolhe os mÃ³dulos disponÃ­veis.
+              Cria o login e escolhe os módulos disponíveis.
             </p>
           </div>
         </div>
@@ -431,12 +431,12 @@ export default function AdminPage() {
               name="password"
               required
               minLength={6}
-              placeholder="MÃ­nimo 6 caracteres"
+              placeholder="Mínimo 6 caracteres"
             />
           </label>
 
           <label>
-            DuraÃ§Ã£o
+            Duração
             <select
               name="accessDuration"
               defaultValue="30"
@@ -480,7 +480,7 @@ export default function AdminPage() {
           <div>
             <h2>Clientes</h2>
             <p>
-              Controla o estado, os mÃ³dulos e a validade.
+              Controla o estado, os módulos e a validade.
             </p>
           </div>
         </div>
@@ -521,21 +521,21 @@ export default function AdminPage() {
                       fontWeight: 700,
                     }}
                   >
-                    {user.password || "Não disponível"}
+                    {user.password || "Não disponÃ­vel"}
                   </code>
                 </div>
 
                 <div className="admin-client-badges">
                   <span>
                     {user.role === "ADMIN"
-                      ? "ðŸ‘‘ Administrador"
-                      : "ðŸ‘¤ Cliente"}
+                      ? "👑 Administrador"
+                      : "👤 Cliente"}
                   </span>
 
                   <span>
                     {user.active
-                      ? "ðŸŸ¢ Ativo"
-                      : "ðŸ”´ Suspenso"}
+                      ? "🟢 Ativo"
+                      : "🔴 Suspenso"}
                   </span>
 
                   <span>
