@@ -298,92 +298,46 @@ export default function ExportPage() {
              * MORADA DE ENVIO
              * =========================
              *
-             * Para a transportadora,
-             * Shipping tem prioridade.
+             * Para a transportadora usamos
+             * exclusivamente os dados Shipping.
              *
-             * Billing só é utilizado quando
-             * não existe morada Shipping.
+             * Nunca misturamos dados Billing
+             * com a morada de envio.
              */
 
-            const shippingAddress1 =
-              firstValue([
-                "Shipping Address1",
-                "Shipping Address 1",
-              ]);
+            const address1 = firstValue([
+              "Shipping Address1",
+              "Shipping Address 1",
+            ]);
 
-            const hasShippingAddress =
-              Boolean(shippingAddress1);
+            const address2 = firstValue([
+              "Shipping Address2",
+              "Shipping Address 2",
+            ]);
 
-            const address1 =
-              hasShippingAddress
-                ? shippingAddress1
-                : firstValue([
-                    "Billing Address1",
-                    "Billing Address 1",
-                  ]);
+            const postalCode = firstValue([
+              "Shipping Zip",
+              "Shipping Postal Code",
+            ]);
 
-            const address2 =
-              hasShippingAddress
-                ? firstValue([
-                    "Shipping Address2",
-                    "Shipping Address 2",
-                  ])
-                : firstValue([
-                    "Billing Address2",
-                    "Billing Address 2",
-                  ]);
-
-            const postalCode =
-              hasShippingAddress
-                ? firstValue([
-                    "Shipping Zip",
-                    "Shipping Postal Code",
-                  ])
-                : firstValue([
-                    "Billing Zip",
-                    "Billing Postal Code",
-                  ]);
-
-            const city =
-              hasShippingAddress
-                ? firstValue([
-                    "Shipping City",
-                  ])
-                : firstValue([
-                    "Billing City",
-                  ]);
+            const city = firstValue([
+              "Shipping City",
+            ]);
 
             const customer =
-              hasShippingAddress
-                ? firstValue([
-                    "Shipping Name",
-                  ]) || "Sem nome"
-                : firstValue([
-                    "Billing Name",
-                    "Customer",
-                  ]) || "Sem nome";
+              firstValue([
+                "Shipping Name",
+              ]) || "Sem nome";
 
-            const phone =
-              hasShippingAddress
-                ? firstValue([
-                    "Shipping Phone",
-                    "Phone",
-                  ])
-                : firstValue([
-                    "Billing Phone",
-                    "Phone",
-                  ]);
+            const phone = firstValue([
+              "Shipping Phone",
+              "Phone",
+            ]);
 
-            const countryRaw =
-              hasShippingAddress
-                ? firstValue([
-                    "Shipping Country Code",
-                    "Shipping Country",
-                  ])
-                : firstValue([
-                    "Billing Country Code",
-                    "Billing Country",
-                  ]);
+            const countryRaw = firstValue([
+              "Shipping Country Code",
+              "Shipping Country",
+            ]);
 
             const countryCode =
               countryRaw
