@@ -28,6 +28,7 @@ export type UserMinAggregateOutputType = {
   id: string | null
   email: string | null
   passwordHash: string | null
+  passwordEncrypted: string | null
   name: string | null
   role: $Enums.UserRole | null
   active: boolean | null
@@ -42,6 +43,7 @@ export type UserMaxAggregateOutputType = {
   id: string | null
   email: string | null
   passwordHash: string | null
+  passwordEncrypted: string | null
   name: string | null
   role: $Enums.UserRole | null
   active: boolean | null
@@ -56,6 +58,7 @@ export type UserCountAggregateOutputType = {
   id: number
   email: number
   passwordHash: number
+  passwordEncrypted: number
   name: number
   role: number
   active: number
@@ -72,6 +75,7 @@ export type UserMinAggregateInputType = {
   id?: true
   email?: true
   passwordHash?: true
+  passwordEncrypted?: true
   name?: true
   role?: true
   active?: true
@@ -86,6 +90,7 @@ export type UserMaxAggregateInputType = {
   id?: true
   email?: true
   passwordHash?: true
+  passwordEncrypted?: true
   name?: true
   role?: true
   active?: true
@@ -100,6 +105,7 @@ export type UserCountAggregateInputType = {
   id?: true
   email?: true
   passwordHash?: true
+  passwordEncrypted?: true
   name?: true
   role?: true
   active?: true
@@ -187,6 +193,7 @@ export type UserGroupByOutputType = {
   id: string
   email: string
   passwordHash: string
+  passwordEncrypted: string | null
   name: string | null
   role: $Enums.UserRole
   active: boolean
@@ -222,6 +229,7 @@ export type UserWhereInput = {
   id?: Prisma.StringFilter<"User"> | string
   email?: Prisma.StringFilter<"User"> | string
   passwordHash?: Prisma.StringFilter<"User"> | string
+  passwordEncrypted?: Prisma.StringNullableFilter<"User"> | string | null
   name?: Prisma.StringNullableFilter<"User"> | string | null
   role?: Prisma.EnumUserRoleFilter<"User"> | $Enums.UserRole
   active?: Prisma.BoolFilter<"User"> | boolean
@@ -237,6 +245,7 @@ export type UserOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   passwordHash?: Prisma.SortOrder
+  passwordEncrypted?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
   active?: Prisma.SortOrder
@@ -255,6 +264,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.UserWhereInput[]
   NOT?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
   passwordHash?: Prisma.StringFilter<"User"> | string
+  passwordEncrypted?: Prisma.StringNullableFilter<"User"> | string | null
   name?: Prisma.StringNullableFilter<"User"> | string | null
   role?: Prisma.EnumUserRoleFilter<"User"> | $Enums.UserRole
   active?: Prisma.BoolFilter<"User"> | boolean
@@ -270,6 +280,7 @@ export type UserOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   passwordHash?: Prisma.SortOrder
+  passwordEncrypted?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
   active?: Prisma.SortOrder
@@ -290,6 +301,7 @@ export type UserScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"User"> | string
   email?: Prisma.StringWithAggregatesFilter<"User"> | string
   passwordHash?: Prisma.StringWithAggregatesFilter<"User"> | string
+  passwordEncrypted?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   name?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   role?: Prisma.EnumUserRoleWithAggregatesFilter<"User"> | $Enums.UserRole
   active?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
@@ -304,6 +316,7 @@ export type UserCreateInput = {
   id?: string
   email: string
   passwordHash: string
+  passwordEncrypted?: string | null
   name?: string | null
   role?: $Enums.UserRole
   active?: boolean
@@ -319,6 +332,7 @@ export type UserUncheckedCreateInput = {
   id?: string
   email: string
   passwordHash: string
+  passwordEncrypted?: string | null
   name?: string | null
   role?: $Enums.UserRole
   active?: boolean
@@ -334,6 +348,7 @@ export type UserUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -349,6 +364,7 @@ export type UserUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -364,6 +380,7 @@ export type UserCreateManyInput = {
   id?: string
   email: string
   passwordHash: string
+  passwordEncrypted?: string | null
   name?: string | null
   role?: $Enums.UserRole
   active?: boolean
@@ -378,6 +395,7 @@ export type UserUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -392,6 +410,7 @@ export type UserUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -406,6 +425,7 @@ export type UserCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   passwordHash?: Prisma.SortOrder
+  passwordEncrypted?: Prisma.SortOrder
   name?: Prisma.SortOrder
   role?: Prisma.SortOrder
   active?: Prisma.SortOrder
@@ -420,6 +440,7 @@ export type UserMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   passwordHash?: Prisma.SortOrder
+  passwordEncrypted?: Prisma.SortOrder
   name?: Prisma.SortOrder
   role?: Prisma.SortOrder
   active?: Prisma.SortOrder
@@ -434,6 +455,7 @@ export type UserMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   passwordHash?: Prisma.SortOrder
+  passwordEncrypted?: Prisma.SortOrder
   name?: Prisma.SortOrder
   role?: Prisma.SortOrder
   active?: Prisma.SortOrder
@@ -491,6 +513,7 @@ export type UserCreateWithoutStoresInput = {
   id?: string
   email: string
   passwordHash: string
+  passwordEncrypted?: string | null
   name?: string | null
   role?: $Enums.UserRole
   active?: boolean
@@ -505,6 +528,7 @@ export type UserUncheckedCreateWithoutStoresInput = {
   id?: string
   email: string
   passwordHash: string
+  passwordEncrypted?: string | null
   name?: string | null
   role?: $Enums.UserRole
   active?: boolean
@@ -535,6 +559,7 @@ export type UserUpdateWithoutStoresInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -549,6 +574,7 @@ export type UserUncheckedUpdateWithoutStoresInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -594,6 +620,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   id?: boolean
   email?: boolean
   passwordHash?: boolean
+  passwordEncrypted?: boolean
   name?: boolean
   role?: boolean
   active?: boolean
@@ -610,6 +637,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   id?: boolean
   email?: boolean
   passwordHash?: boolean
+  passwordEncrypted?: boolean
   name?: boolean
   role?: boolean
   active?: boolean
@@ -624,6 +652,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   id?: boolean
   email?: boolean
   passwordHash?: boolean
+  passwordEncrypted?: boolean
   name?: boolean
   role?: boolean
   active?: boolean
@@ -638,6 +667,7 @@ export type UserSelectScalar = {
   id?: boolean
   email?: boolean
   passwordHash?: boolean
+  passwordEncrypted?: boolean
   name?: boolean
   role?: boolean
   active?: boolean
@@ -648,7 +678,7 @@ export type UserSelectScalar = {
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "passwordHash" | "name" | "role" | "active" | "exportEnabled" | "adsEnabled" | "accessExpiresAt" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "passwordHash" | "passwordEncrypted" | "name" | "role" | "active" | "exportEnabled" | "adsEnabled" | "accessExpiresAt" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   stores?: boolean | Prisma.User$storesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -665,6 +695,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     id: string
     email: string
     passwordHash: string
+    passwordEncrypted: string | null
     name: string | null
     role: $Enums.UserRole
     active: boolean
@@ -1100,6 +1131,7 @@ export interface UserFieldRefs {
   readonly id: Prisma.FieldRef<"User", 'String'>
   readonly email: Prisma.FieldRef<"User", 'String'>
   readonly passwordHash: Prisma.FieldRef<"User", 'String'>
+  readonly passwordEncrypted: Prisma.FieldRef<"User", 'String'>
   readonly name: Prisma.FieldRef<"User", 'String'>
   readonly role: Prisma.FieldRef<"User", 'UserRole'>
   readonly active: Prisma.FieldRef<"User", 'Boolean'>

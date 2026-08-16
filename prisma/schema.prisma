@@ -13,17 +13,17 @@ enum UserRole {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String?
-  role         UserRole @default(CUSTOMER)
-  active       Boolean  @default(true)
+  id                String   @id @default(cuid())
+  email             String   @unique
+  passwordHash      String
+  passwordEncrypted String?
+  name              String?
+  role              UserRole @default(CUSTOMER)
+  active            Boolean  @default(true)
 
   exportEnabled Boolean @default(false)
   adsEnabled    Boolean @default(false)
 
-  // null significa acesso infinito
   accessExpiresAt DateTime?
 
   createdAt DateTime @default(now())

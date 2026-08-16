@@ -1,5 +1,10 @@
 import bcrypt from "bcryptjs";
 
+import {
+  decryptPassword,
+  encryptPassword,
+} from "../lib/password.server";
+
 import type {
   ActionFunctionArgs,
   LoaderFunctionArgs,
@@ -65,7 +70,30 @@ export async function loader({
       adsEnabled: true,
       accessExpiresAt: true,
       createdAt: true,
+      passwordEncrypted: true,
     },
+  });
+
+  const usersWithPasswords = users.map((user) => {
+    let password: string | null = null;
+
+    if (user.passwordEncrypted) {
+      try {
+        password = decryptPassword(user.passwordEncrypted);
+      } catch (error) {
+        console.error(
+          `Não foi possível desencriptar a password de ${user.email}:`,
+          error,
+        );
+      }
+    }
+
+    const { passwordEncrypted, ...safeUser } = user;
+
+    return {
+      ...safeUser,
+      password,
+    };
   });
 
   return {
@@ -73,7 +101,7 @@ export async function loader({
       name: admin.name,
       email: admin.email,
     },
-    users,
+    users: usersWithPasswords,
   };
 }
 
@@ -128,17 +156,19 @@ export async function action({
 
       if (existing) {
         return {
-          error: "Já existe um utilizador com esse email.",
+          error: "JÃ¡ existe um utilizador com esse email.",
         };
       }
 
       const passwordHash = await bcrypt.hash(password, 12);
+      const passwordEncrypted = encryptPassword(password);
 
       await db.user.create({
         data: {
           name: name || null,
           email,
           passwordHash,
+          passwordEncrypted,
           role: "CUSTOMER",
           active: true,
           exportEnabled,
@@ -156,7 +186,7 @@ export async function action({
 
     if (!userId) {
       return {
-        error: "Cliente inválido.",
+        error: "Cliente invÃ¡lido.",
       };
     }
 
@@ -168,14 +198,14 @@ export async function action({
 
     if (!user) {
       return {
-        error: "Cliente não encontrado.",
+        error: "Cliente nÃ£o encontrado.",
       };
     }
 
     if (user.role === "ADMIN" && intent !== "renew") {
       return {
         error:
-          "Não podes suspender ou eliminar a conta principal de administrador.",
+          "NÃ£o podes suspender ou eliminar a conta principal de administrador.",
       };
     }
 
@@ -262,24 +292,24 @@ export async function action({
     }
 
     return {
-      error: "Operação inválida.",
+      error: "OperaÃ§Ã£o invÃ¡lida.",
     };
   } catch (error) {
     console.error("Erro no painel Admin:", error);
 
     return {
-      error: "Não foi possível concluir a operação.",
+      error: "NÃ£o foi possÃ­vel concluir a operaÃ§Ã£o.",
     };
   }
 }
 
 function formatAccess(value: string | Date | null) {
-  if (!value) return "♾️ Infinito";
+  if (!value) return "â™¾ï¸ Infinito";
 
   const date = new Date(value);
   const expired = date.getTime() < Date.now();
 
-  return `${expired ? "🔴 Expirado: " : ""}${new Intl.DateTimeFormat(
+  return `${expired ? "ðŸ”´ Expirado: " : ""}${new Intl.DateTimeFormat(
     "pt-PT",
   ).format(date)}`;
 }
@@ -298,10 +328,10 @@ export default function AdminPage() {
       <header className="admin-header">
         <div>
           <p className="eyebrow">SELLFORGE ADMIN</p>
-          <h1>Gestão de clientes</h1>
+          <h1>GestÃ£o de clientes</h1>
 
           <p>
-            Sessão iniciada como{" "}
+            SessÃ£o iniciada como{" "}
             <strong>{admin.name || admin.email}</strong>
           </p>
         </div>
@@ -317,13 +347,13 @@ export default function AdminPage() {
 
       {actionData?.success && (
         <div className="admin-message success">
-          ✅ {actionData.success}
+          âœ… {actionData.success}
         </div>
       )}
 
       {actionData?.error && (
         <div className="admin-message error">
-          ❌ {actionData.error}
+          âŒ {actionData.error}
         </div>
       )}
 
@@ -367,7 +397,7 @@ export default function AdminPage() {
           <div>
             <h2>Adicionar cliente</h2>
             <p>
-              Cria o login e escolhe os módulos disponíveis.
+              Cria o login e escolhe os mÃ³dulos disponÃ­veis.
             </p>
           </div>
         </div>
@@ -401,12 +431,12 @@ export default function AdminPage() {
               name="password"
               required
               minLength={6}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="MÃ­nimo 6 caracteres"
             />
           </label>
 
           <label>
-            Duração
+            DuraÃ§Ã£o
             <select
               name="accessDuration"
               defaultValue="30"
@@ -450,7 +480,7 @@ export default function AdminPage() {
           <div>
             <h2>Clientes</h2>
             <p>
-              Controla o estado, os módulos e a validade.
+              Controla o estado, os mÃ³dulos e a validade.
             </p>
           </div>
         </div>
@@ -462,17 +492,50 @@ export default function AdminPage() {
                 <strong>{user.name || "Sem nome"}</strong>
                 <span>{user.email}</span>
 
+                <div
+                  style={{
+                    marginTop: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#6b7280",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Password:
+                  </span>
+
+                  <code
+                    style={{
+                      padding: "5px 8px",
+                      borderRadius: "7px",
+                      background: "#f3f4f6",
+                      color: "#111827",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {user.password || "Não disponível"}
+                  </code>
+                </div>
+
                 <div className="admin-client-badges">
                   <span>
                     {user.role === "ADMIN"
-                      ? "👑 Administrador"
-                      : "👤 Cliente"}
+                      ? "ðŸ‘‘ Administrador"
+                      : "ðŸ‘¤ Cliente"}
                   </span>
 
                   <span>
                     {user.active
-                      ? "🟢 Ativo"
-                      : "🔴 Suspenso"}
+                      ? "ðŸŸ¢ Ativo"
+                      : "ðŸ”´ Suspenso"}
                   </span>
 
                   <span>
